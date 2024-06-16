@@ -17,3 +17,7 @@ func FakeFunc() string {
 func FakeFunc2() string {
 	return "fake func"
 }
+
+func FakeFunc3() string {
+	return "fake func"
+}
