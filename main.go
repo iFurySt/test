@@ -4,12 +4,16 @@
  * @Date 2024/6/16
  */
 
-package test
+package main
 
 func main() {
 	// nothing
 }
 
 func FakeFunc() string {
+	return "fake func"
+}
+
+func FakeFunc2() string {
 	return "fake func"
 }
