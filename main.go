@@ -12,4 +12,5 @@ func main() {
 
 func FakeFunc() {
 	// nothing
+	// 11
 }
