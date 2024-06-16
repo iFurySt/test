@@ -2,4 +2,12 @@ codecov:
   notify:
     wait_for_ci: true
 
-comment: false
+coverage:
+  status:
+    patch:
+      default:
+        threshold: 100%
+    project:
+      default:
+        threshold: 1%
+

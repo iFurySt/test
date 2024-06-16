@@ -10,7 +10,6 @@ func main() {
 	// nothing
 }
 
-func FakeFunc() {
-	// nothing
-	// 1122222
+func FakeFunc() string {
+	return "fake func"
 }
