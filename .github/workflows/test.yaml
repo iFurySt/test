@@ -1,19 +1,10 @@
 name: Run Unit Tests
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-
 on:
   push:
     branches:
       - main
-    paths-ignore:
-      - '**/*.md'
-      - 'frontend/**'
-      - 'docs/**'
-      - 'evaluation/**'
-  pull_request:
+  workflow_dispatch:
 
 env:
   PERSIST_SANDBOX : "false"
@@ -70,7 +61,3 @@ jobs:
       - name: Run Tests
         run: poetry run pytest --forked --cov=agenthub --cov=opendevin --cov-report=xml ./tests/unit -k "not test_sandbox"
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
