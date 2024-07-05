@@ -1,32 +1,76 @@
-# This workflow will build a golang project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+name: Run Unit Tests
 
-name: Go Test
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
+    paths-ignore:
+      - '**/*.md'
+      - 'frontend/**'
+      - 'docs/**'
+      - 'evaluation/**'
   pull_request:
-    branches: [ "main" ]
+
+env:
+  PERSIST_SANDBOX : "false"
 
 jobs:
+  test-on-macos:
+    name: Test on macOS
+    runs-on: macos-12
+    env:
+      INSTALL_DOCKER: "1" # Set to '0' to skip Docker installation
+    strategy:
+      matrix:
+        python-version: ["3.11"]
 
-  build:
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          repository: OpenDevin/OpenDevin
 
-      - name: Run coverage
-        run: sh -c "sleep 30" && go test -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./... ./...
+      - name: Install poetry via pipx
+        run: pipx install poetry
 
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4.0.1
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          python-version: ${{ matrix.python-version }}
+          cache: "poetry"
+
+      - name: Install Python dependencies using Poetry
+        run: poetry install
+
+      - name: Install & Start Docker
+        if: env.INSTALL_DOCKER == '1'
+        run: |
+          # Uninstall colima to upgrade to the latest version
+          if brew list colima &>/dev/null; then
+              brew uninstall colima
+              # unlinking colima dependency: go
+              brew uninstall go@1.21
+          fi
+          rm -rf ~/.colima ~/.lima
+          brew install --HEAD colima
+          brew services start colima
+          brew install docker
+          colima start  --network-address --arch x86_64 --cpu=1 --memory=1
+
+          # For testcontainers to find the Colima socket
+          # https://github.com/abiosoft/colima/blob/main/docs/FAQ.md#cannot-connect-to-the-docker-daemon-at-unixvarrundockersock-is-the-docker-daemon-running
+          sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock
+
+      - name: Build Environment
+        run: make build
+
+      - name: Run Tests
+        run: poetry run pytest --forked --cov=agenthub --cov=opendevin --cov-report=xml ./tests/unit -k "not test_sandbox"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
